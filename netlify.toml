@@ -1,6 +1,6 @@
 [build]
   command = "npm install" # Or "yarn install" if you use yarn
-  publish = "dist" # This can be any non-existent directory if you only serve functions
+  publish = "." # This can be any non-existent directory if you only serve functions
   functions = "netlify/functions" # This is where Netlify will look for your function files
 
 [[redirects]]
