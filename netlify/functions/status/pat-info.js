@@ -5,8 +5,14 @@
  * @description This function is currently rate limited to 1 request per 5 minutes.
  */
 
-import { logger, request, dateDiff } from "../../../src/common/utils.js";
-export const RATE_LIMIT_SECONDS = 60 * 5; // 1 request per 5 minutes
+// Use CommonJS syntax (require) for Netlify Functions, and adjust paths.
+// Ensure these paths are correct relative to where this function file is located.
+// For example, if this file is in `netlify/functions/status-pat-info.js` and common is in `src/common`,
+// you might need `../../src/common/utils.js`.
+const { logger, request, dateDiff } = require("../../../src/common/utils");
+
+// Export the rate limit constant
+const RATE_LIMIT_SECONDS = 60 * 5; // 1 request per 5 minutes
 
 /**
  * @typedef {import('axios').AxiosRequestHeaders} AxiosRequestHeaders Axios request headers.
@@ -39,6 +45,7 @@ const uptimeFetcher = (variables, token) => {
 };
 
 const getAllPATs = () => {
+  // Access process.env directly; Netlify injects environment variables here.
   return Object.keys(process.env).filter((key) => /PAT_\d*$/.exec(key));
 };
 
@@ -104,6 +111,7 @@ const getPATInfo = async (fetcher, variables) => {
           status: "suspended",
         };
       } else {
+        // Re-throw if it's an unexpected error, so the main handler catches it.
         throw err;
       }
     }
@@ -133,26 +141,42 @@ const getPATInfo = async (fetcher, variables) => {
 /**
  * Cloud function that returns information about the used PATs.
  *
- * @param {any} _ The request.
- * @param {any} res The response.
- * @returns {Promise<void>} The response.
+ * @param {object} event The Netlify Function event object.
+ * @param {object} context The Netlify Function context object.
+ * @returns {Promise<object>} The Netlify Function response object.
  */
-export default async (_, res) => {
-  res.setHeader("Content-Type", "application/json");
+exports.handler = async (event, context) => { // Changed to exports.handler
+  let statusCode = 200;
+  let headers = {
+    "Content-Type": "application/json",
+  };
+  let body = "";
+
   try {
-    // Add header to prevent abuse.
+    // getPATInfo does not need event/context, as it uses process.env directly.
     const PATsInfo = await getPATInfo(uptimeFetcher, {});
-    if (PATsInfo) {
-      res.setHeader(
-        "Cache-Control",
-        `max-age=0, s-maxage=${RATE_LIMIT_SECONDS}`,
-      );
-    }
-    res.send(JSON.stringify(PATsInfo, null, 2));
+
+    // headers are built into the returned object, not set via res.setHeader
+    headers["Cache-Control"] = `max-age=0, s-maxage=${RATE_LIMIT_SECONDS}`;
+    
+    // Stringify the JSON response for the body
+    body = JSON.stringify(PATsInfo, null, 2);
+
   } catch (err) {
-    // Throw error if something went wrong.
-    logger.error(err);
-    res.setHeader("Cache-Control", "no-store");
-    res.send("Something went wrong: " + err.message);
+    // Log the error using console.error for Netlify Function logs
+    console.error("PAT Info Function error:", err);
+    statusCode = 500;
+    headers = { // Reset headers for error response
+      "Content-Type": "text/plain",
+      "Cache-Control": "no-store",
+    };
+    body = "Something went wrong: " + err.message;
   }
+
+  // Return the response object in Netlify Function's expected format
+  return {
+    statusCode,
+    headers,
+    body,
+  };
 };

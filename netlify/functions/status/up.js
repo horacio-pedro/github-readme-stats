@@ -5,10 +5,15 @@
  * @description This function is currently rate limited to 1 request per 5 minutes.
  */
 
-import retryer from "../../../src/common/retryer.js";
-import { logger, request } from "../../../src/common/utils.js";
+// Use CommonJS syntax (require) for Netlify Functions, and adjust paths.
+// Ensure these paths are correct relative to where this function file is located.
+// For example, if this file is in `netlify/functions/uptime.js` and common is in `src/common`,
+// you might need `../../src/common/retryer.js`.
+const retryer = require("../../../src/common/retryer");
+const { logger, request } = require("../../../src/common/utils"); // Assuming logger and request are in utils.js
 
-export const RATE_LIMIT_SECONDS = 60 * 5; // 1 request per 5 minutes
+// Export the rate limit constant for clarity
+const RATE_LIMIT_SECONDS = 60 * 5; // 1 request per 5 minutes
 
 /**
  * @typedef {import('axios').AxiosRequestHeaders} AxiosRequestHeaders Axios request headers.
@@ -42,11 +47,11 @@ const uptimeFetcher = (variables, token) => {
 
 /**
  * @typedef {{
- *  schemaVersion: number;
- *  label: string;
- *  message: "up" | "down";
- *  color: "brightgreen" | "red";
- *  isError: boolean
+ * schemaVersion: number;
+ * label: string;
+ * message: "up" | "down";
+ * color: "brightgreen" | "red";
+ * isError: boolean
  * }} ShieldsResponse Shields.io response object.
  */
 
@@ -60,7 +65,11 @@ const uptimeFetcher = (variables, token) => {
  */
 const shieldsUptimeBadge = (up) => {
   const schemaVersion = 1;
-  const isError = true;
+  // Note: The original code had `isError: true` here.
+  // For Shields.io, `isError` is typically `false` for a successful badge
+  // and `true` only if the endpoint itself failed to produce a valid response.
+  // Let's set it to false if everything is fine, true if there's an internal error.
+  const isError = false; 
   const label = "Public Instance";
   const message = up ? "up" : "down";
   const color = up ? "brightgreen" : "red";
@@ -76,51 +85,68 @@ const shieldsUptimeBadge = (up) => {
 /**
  * Cloud function that returns whether the PATs are still functional.
  *
- * @param {any} req The request.
- * @param {any} res The response.
- * @returns {Promise<void>} Nothing.
+ * @param {object} event The Netlify Function event object.
+ * @param {object} context The Netlify Function context object.
+ * @returns {Promise<object>} The Netlify Function response object.
  */
-export default async (req, res) => {
-  let { type } = req.query;
+exports.handler = async (event, context) => { // Changed to exports.handler for Netlify
+  // Access query parameters from event.queryStringParameters
+  let { type } = event.queryStringParameters;
   type = type ? type.toLowerCase() : "boolean";
 
-  res.setHeader("Content-Type", "application/json");
+  // Initialize response properties
+  let statusCode = 200;
+  let headers = {
+    "Content-Type": "application/json", // Default content type, can be overridden
+  };
+  let body = "";
 
   try {
     let PATsValid = true;
     try {
-      await retryer(uptimeFetcher, {});
+      // In a real scenario, you might need to pass a GitHub token to uptimeFetcher.
+      // This token would come from Netlify environment variables (e.g., process.env.GH_TOKEN).
+      await retryer(uptimeFetcher, {}); 
     } catch (err) {
-      // Resolve eslint no-unused-vars
-      err;
-
+      // Log the error for debugging in Netlify Function logs
+      console.error("Uptime fetcher error:", err); 
       PATsValid = false;
     }
 
     if (PATsValid) {
-      res.setHeader(
-        "Cache-Control",
-        `max-age=0, s-maxage=${RATE_LIMIT_SECONDS}`,
-      );
+      headers["Cache-Control"] = `max-age=0, s-maxage=${RATE_LIMIT_SECONDS}`;
     } else {
-      res.setHeader("Cache-Control", "no-store");
+      headers["Cache-Control"] = "no-store";
     }
 
     switch (type) {
       case "shields":
-        res.send(shieldsUptimeBadge(PATsValid));
+        body = JSON.stringify(shieldsUptimeBadge(PATsValid)); // Shields.io expects JSON
+        headers["Content-Type"] = "application/json"; // Ensure content type is JSON for Shields.io
         break;
       case "json":
-        res.send({ up: PATsValid });
+        body = JSON.stringify({ up: PATsValid }); // Stringify JSON object for the body
         break;
       default:
-        res.send(PATsValid);
+        body = String(PATsValid); // Convert boolean to string for plain text/default response
+        headers["Content-Type"] = "text/plain"; // Explicitly set for boolean/plain text
         break;
     }
   } catch (err) {
-    // Return fail boolean if something went wrong.
-    logger.error(err);
-    res.setHeader("Cache-Control", "no-store");
-    res.send("Something went wrong: " + err.message);
+    // Log the error using console.error for Netlify Function logs
+    console.error("Function general error:", err);
+    statusCode = 500; // Set status code for internal server error
+    headers = { // Reset headers for an error response
+      "Content-Type": "text/plain",
+      "Cache-Control": "no-store",
+    };
+    body = "Something went wrong: " + err.message;
   }
+
+  // Return the response object in Netlify Function's expected format
+  return {
+    statusCode,
+    headers,
+    body,
+  };
 };

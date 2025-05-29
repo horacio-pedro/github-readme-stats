@@ -1,11 +1,11 @@
 [build]
-  command = "npm install"
+  command = "npm install" # Or "yarn install" if you use yarn
   publish = "."
   functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/index" # <--- Mude 'api' para 'index' aqui!
+  to = "/.netlify/functions/index"
   status = 200
   force = true
 
@@ -22,18 +22,30 @@
   force = true
 
 [[redirects]]
-  from = "/gist/*" # <--- Adicione esta regra
+  from = "/gist/*"
   to = "/.netlify/functions/gist"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/wakatime/*" # <--- Adicione esta regra
+  from = "/wakatime/*"
   to = "/.netlify/functions/wakatime"
   status = 200
   force = true
 
-# Opcional: Se você quiser uma página padrão na raiz do seu domínio
+[[redirects]]
+  from = "/status/pat-info/*" # Match the path for pat-info
+  to = "/.netlify/functions/status-pat-info" # Point to the generated function name
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/status/up/*" # Match the path for up
+  to = "/.netlify/functions/status-up" # Point to the generated function name
+  status = 200
+  force = true
+
+# Optional: If you want a default page at the root (e.g., a README.md rendered to index.html)
 # [[redirects]]
 #   from = "/*"
 #   to = "/index.html"
