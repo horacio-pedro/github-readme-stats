@@ -1,13 +1,13 @@
 [build]
-  command = "npm install" # Or "yarn install" if you use yarn
-  publish = "." # This can be any non-existent directory if you only serve functions
-  functions = "netlify/functions" # This is where Netlify will look for your function files
+  command = "npm install"
+  publish = "."
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/index" # <--- Mude 'api' para 'index' aqui!
   status = 200
-  force = true # Ensures this redirect takes precedence
+  force = true
 
 [[redirects]]
   from = "/top-langs/*"
@@ -21,7 +21,19 @@
   status = 200
   force = true
 
-# Optional: If you want a default page at the root (e.g., a README.md rendered to index.html)
+[[redirects]]
+  from = "/gist/*" # <--- Adicione esta regra
+  to = "/.netlify/functions/gist"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/wakatime/*" # <--- Adicione esta regra
+  to = "/.netlify/functions/wakatime"
+  status = 200
+  force = true
+
+# Opcional: Se você quiser uma página padrão na raiz do seu domínio
 # [[redirects]]
 #   from = "/*"
 #   to = "/index.html"
