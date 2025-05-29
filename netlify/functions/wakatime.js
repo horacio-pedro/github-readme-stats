@@ -1,13 +1,13 @@
-import { renderWakatimeCard } from "../src/cards/wakatime-card.js";
+import { renderWakatimeCard } from "../../src/cards/wakatime-card.js";
 import {
   clampValue,
   CONSTANTS,
   parseArray,
   parseBoolean,
   renderError,
-} from "../src/common/utils.js";
-import { fetchWakatimeStats } from "../src/fetchers/wakatime-fetcher.js";
-import { isLocaleAvailable } from "../src/translations.js";
+} from "../../src/common/utils.js";
+import { fetchWakatimeStats } from "../../src/fetchers/wakatime-fetcher.js";
+import { isLocaleAvailable } from "../../src/translations.js";
 
 export default async (req, res) => {
   const {
