@@ -5,7 +5,7 @@ import {
   parseArray,
   parseBoolean,
   renderError,
-} from "../src/common/utils.js";
+} from "../../src/common/utils.js";
 import { fetchTopLanguages } from "../../src/fetchers/top-languages-fetcher.js";
 import { isLocaleAvailable } from "../../src/translations.js";
 
